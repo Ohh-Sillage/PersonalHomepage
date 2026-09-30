@@ -1,0 +1,11 @@
+<section id="about" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">01.</span> 关于我
+    <span class="heading-line"></span>
+  </h2>
+  <div class="section-body">
+    {% for para in site['intro'] %}
+    <p>{{ para }}</p>
+    {% endfor %}
+  </div>
+</section>

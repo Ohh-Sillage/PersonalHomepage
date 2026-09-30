@@ -1,0 +1,21 @@
+{% from "partials/icons.html" import icon %}
+<section id="writing" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">05.</span> 近期文章
+    <span class="heading-line"></span>
+  </h2>
+  <ul class="post-list">
+    {% for post in posts %}
+    <li class="reveal">
+      <a href="/blog/{{ post['slug'] }}">
+        <time>{{ post['date'] }}</time>
+        <h3>{{ post['title'] }}</h3>
+        <p>{{ post['summary'] }}</p>
+      </a>
+    </li>
+    {% else %}
+    <li class="empty-tip">暂时还没有文章。</li>
+    {% endfor %}
+  </ul>
+  <a class="more-link" href="/blog">查看全部文章 {{ icon('arrow-right', 16) }}</a>
+</section>

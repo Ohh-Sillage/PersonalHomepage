@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ site['name'] }} · {{ site['title'] }}{% endblock %}</title>
+  <meta name="description" content="{{ site['tagline'] }}">
+  <meta name="author" content="{{ site['name'] }}">
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a192f'/><text x='50' y='72' font-size='56' text-anchor='middle' fill='%2364ffda' font-family='monospace'>{{ site['name'][:1] }}</text></svg>">
+  <link rel="stylesheet" href="/static/css/style.css?v=4">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% block body %}{% endblock %}
+
+  {% include "partials/chat_widget.html" %}
+
+  <script src="/static/js/main.js?v=2"></script>
+  <script src="/static/js/chat.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

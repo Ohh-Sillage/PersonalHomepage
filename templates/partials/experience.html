@@ -1,0 +1,24 @@
+<section id="experience" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">03.</span> 工作经历
+    <span class="heading-line"></span>
+  </h2>
+  <div class="timeline">
+    {% for job in site['experience'] %}
+    <article class="timeline-item">
+      <time class="timeline-period">{{ job['period'] }}</time>
+      <div class="timeline-body">
+        <h3>{{ job['role'] }} · <span class="company">{{ job['company'] }}</span></h3>
+        <p>{{ job['description'] }}</p>
+        {% if job['tags'] %}
+        <ul class="tag-list">
+          {% for t in job['tags'] %}
+          <li>{{ t }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>

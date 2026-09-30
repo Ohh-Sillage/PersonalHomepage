@@ -1,0 +1,15 @@
+# Web 框架与服务器
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+jinja2>=3.1.4
+
+# 内容解析（站点配置 + 博客 Markdown）
+pyyaml>=6.0.1
+markdown>=3.6
+pygments>=2.18.0
+python-frontmatter>=1.1.0
+
+# 配置与 HTTP 客户端（LLM 预留接口使用）
+python-dotenv>=1.0.1
+pydantic-settings>=2.4.0
+httpx>=0.27.0

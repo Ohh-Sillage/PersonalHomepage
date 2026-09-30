@@ -1,0 +1,18 @@
+<section id="skills" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">02.</span> 技能
+    <span class="heading-line"></span>
+  </h2>
+  <div class="skills-grid">
+    {% for group in site['skills'] %}
+    <div class="skill-card">
+      <h3>{{ group['category'] }}</h3>
+      <ul class="tag-list">
+        {% for item in group['items'] %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+</section>

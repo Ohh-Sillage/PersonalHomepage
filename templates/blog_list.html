@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}全部文章 · {{ site['name'] }}{% endblock %}
+
+{% block body %}
+<main class="page-narrow">
+  <a class="back-link" href="/">← 返回主页</a>
+
+  <h1 class="page-title"><span class="section-num">Blog</span> 全部文章</h1>
+
+  <ul class="post-list post-list-full">
+    {% for post in posts %}
+    <li>
+      <a href="/blog/{{ post['slug'] }}">
+        <time>{{ post['date'] }}</time>
+        <h3>{{ post['title'] }}</h3>
+        <p>{{ post['summary'] }}</p>
+      </a>
+    </li>
+    {% else %}
+    <li class="empty-tip">暂时还没有文章。</li>
+    {% endfor %}
+  </ul>
+</main>
+{% endblock %}

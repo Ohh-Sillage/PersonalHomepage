@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 环境与密钥
+.env
+.venv/
+venv/
+deploy/.sync_config.json
+
+# 临时文件
+Test/tmp_*.py
+*.log
+logs/

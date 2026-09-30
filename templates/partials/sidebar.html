@@ -1,0 +1,32 @@
+{% from "partials/icons.html" import icon %}
+<header class="sidebar">
+  <div class="sidebar-top">
+    <h1 class="site-name"><a href="/">{{ site['name'] }}</a></h1>
+    <h2 class="site-title">{{ site['title'] }}</h2>
+    <p class="site-tagline">{{ site['tagline'] }}</p>
+
+    <nav class="anchor-nav" aria-label="页面导航">
+      <ul>
+        {% for item in site['nav'] %}
+        <li>
+          <a href="#{{ item['id'] }}" data-nav="{{ item['id'] }}">
+            <span class="nav-line"></span>
+            <span class="nav-label">{{ item['label'] }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+
+  <ul class="socials">
+    {% for s in site['socials'] %}
+    <li>
+      <a href="{{ s['url'] }}" target="_blank" rel="noopener noreferrer"
+         aria-label="{{ s['name'] }}" title="{{ s['name'] }}">
+        {{ icon(s['icon']) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</header>

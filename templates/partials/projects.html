@@ -1,0 +1,41 @@
+{% from "partials/icons.html" import icon %}
+<section id="projects" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">04.</span> 项目作品
+    <span class="heading-line"></span>
+  </h2>
+  <div class="project-grid">
+    {% for p in site['projects'] %}
+    <article class="project-card">
+      <div class="project-cover">
+        {% if p['image'] %}
+        <img src="{{ p['image'] }}" alt="{{ p['name'] }} 预览图" loading="lazy">
+        {% else %}
+        <span class="cover-placeholder">{{ icon('folder', 44) }}</span>
+        {% endif %}
+      </div>
+      <div class="project-body">
+        <div class="project-top">
+          <h3>{{ p['name'] }}</h3>
+          <span class="project-links">
+            {% if p['repo'] %}
+            <a href="{{ p['repo'] }}" target="_blank" rel="noopener noreferrer" aria-label="代码仓库" title="代码仓库">{{ icon('github', 18) }}</a>
+            {% endif %}
+            {% if p['link'] %}
+            <a href="{{ p['link'] }}" target="_blank" rel="noopener noreferrer" aria-label="在线演示" title="在线演示">{{ icon('external-link', 18) }}</a>
+            {% endif %}
+          </span>
+        </div>
+        <p>{{ p['description'] }}</p>
+        {% if p['tags'] %}
+        <ul class="tag-list">
+          {% for t in p['tags'] %}
+          <li>{{ t }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>

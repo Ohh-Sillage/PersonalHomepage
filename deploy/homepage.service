@@ -1,0 +1,31 @@
+# ============================================================
+# systemd 服务：个人主页（FastAPI + Uvicorn）
+# 部署位置：/etc/systemd/system/homepage.service
+# 启用方式：
+#   systemctl daemon-reload
+#   systemctl enable --now homepage
+# ============================================================
+
+[Unit]
+Description=Personal Homepage (FastAPI + Uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=homepage
+Group=homepage
+WorkingDirectory=/opt/homepage
+
+# 使用 conda 环境 homepage 的解释器与可执行文件
+Environment="PATH=/opt/miniconda3/envs/homepage/bin"
+ExecStart=/opt/miniconda3/envs/homepage/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+
+Restart=always
+RestartSec=3
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

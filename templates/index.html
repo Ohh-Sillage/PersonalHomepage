@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="container">
+  {% include "partials/sidebar.html" %}
+
+  <main class="content">
+    {% include "partials/about.html" %}
+    {% include "partials/skills.html" %}
+    {% include "partials/experience.html" %}
+    {% include "partials/projects.html" %}
+    {% include "partials/writing.html" %}
+    {% include "partials/contact.html" %}
+
+    <footer class="footer">
+      <p>Designed &amp; Built by {{ site['name'] }} · <a href="https://yjgnet.cn" target="_blank" rel="noopener">yjgnet.cn</a> · {{ now_year if now_year else '' }}</p>
+    </footer>
+  </main>
+</div>
+{% endblock %}

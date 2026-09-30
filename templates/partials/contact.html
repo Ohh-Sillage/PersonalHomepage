@@ -1,0 +1,17 @@
+{% from "partials/icons.html" import icon %}
+<section id="contact" class="section reveal">
+  <h2 class="section-heading">
+    <span class="section-num">06.</span> 联系我
+    <span class="heading-line"></span>
+  </h2>
+  <div class="section-body">
+    <p>目前我乐于接受 AI 相关的交流、合作机会或技术讨论。无论你是想聊聊大模型落地，还是有合适的岗位机会，都欢迎给我发一封邮件。</p>
+    <div class="contact-actions">
+      <a class="btn-primary" id="copy-email" href="mailto:{{ site['email'] }}" data-email="{{ site['email'] }}" title="点击复制邮箱地址">{{ icon('mail', 18) }}<span class="btn-label">复制邮箱</span></a>
+      {% if site['resume_url'] %}
+      <a class="btn-ghost" href="{{ site['resume_url'] }}" download>{{ icon('download', 18) }} 下载简历 PDF</a>
+      {% endif %}
+    </div>
+    <p class="contact-email">邮箱：{{ site['email'] }}</p>
+  </div>
+</section>

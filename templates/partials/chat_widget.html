@@ -1,0 +1,29 @@
+{% from "partials/icons.html" import icon %}
+<div class="chat-widget" id="chatWidget">
+  <button class="chat-toggle" id="chatToggle" type="button" aria-label="打开 AI 助手">
+    {{ icon('cpu', 24) }}
+    <span class="chat-badge">AI</span>
+  </button>
+
+  <section class="chat-panel" id="chatPanel" hidden aria-label="AI 助手对话框">
+    <header class="chat-header">
+      <div class="chat-header-info">
+        <span class="chat-avatar">{{ icon('cpu', 18) }}</span>
+        <div>
+          <strong>AI 助手</strong>
+          <span class="chat-subtitle">关于 {{ site['name'] }} 的问题都可以问我</span>
+        </div>
+      </div>
+      <button class="chat-close" id="chatClose" type="button" aria-label="关闭">{{ icon('x', 18) }}</button>
+    </header>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">你好！我是 {{ site['name'] }} 主页上的 AI 助手。你可以问我：他/她会什么技术、做过哪些项目、怎么联系等问题。</div>
+    </div>
+
+    <form class="chat-input" id="chatForm">
+      <input id="chatText" type="text" maxlength="500" placeholder="输入你的问题…" autocomplete="off" aria-label="输入问题">
+      <button type="submit" aria-label="发送">{{ icon('send', 18) }}</button>
+    </form>
+  </section>
+</div>

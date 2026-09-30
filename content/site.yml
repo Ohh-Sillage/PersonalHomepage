@@ -1,0 +1,92 @@
+# ============================================================
+# 站点内容配置
+# 将下面的占位内容替换为你自己的真实信息后保存即可，无需修改代码。
+# 修改后刷新页面即生效（内容带自动重载，无需重启服务）。
+# ============================================================
+
+# 展示在主面板的名字与职位
+name: "杨建国"
+title: "AI 算法工程师"
+tagline: "专注大模型应用落地与智能系统开发，热爱把想法变成可用的产品。"
+
+# 关于我（每段一条，支持多段）
+intro:
+  - "你好，我是杨建国，一名 AI 方向的软件工程师。日常专注于大语言模型应用、RAG 检索增强、模型微调与 AI 系统工程化落地。"
+  - "我习惯从工程视角思考算法问题：一个模型不仅要训练得好，更要服务得稳、迭代得快。因此在工作中我也持续打磨后端开发、容器化部署与性能优化方面的能力。"
+  - "工作之外，我喜欢阅读前沿论文、写技术文章、折腾开源项目。如果你对 AI 工程化感兴趣，欢迎随时和我交流。"
+
+# 联系方式与简历
+email: "596629821@qq.com"
+resume_url: "/static/files/resume.pdf"
+
+# 左侧导航锚点（与主页板块 id 对应）
+nav:
+  - { id: "about", label: "关于我" }
+  - { id: "skills", label: "技能" }
+  - { id: "experience", label: "经历" }
+  - { id: "projects", label: "项目" }
+  - { id: "writing", label: "文章" }
+  - { id: "contact", label: "联系" }
+
+# 社交链接（icon 可选值：github / mail / linkedin / message-square / code / message-circle / rss / globe）
+# 邮箱（与“发邮件给我”按钮重复）与掘金已隐藏，如需恢复取消对应行注释
+socials:
+  - { name: "GitHub", url: "https://github.com/Ohh-Sillage", icon: "github" }
+  - { name: "知乎", url: "https://www.zhihu.com/people/shi-yi-ren-85", icon: "message-square" }
+  # - { name: "邮箱", url: "mailto:596629821@qq.com", icon: "mail" }
+  # - { name: "掘金", url: "https://juejin.cn/user/yourname", icon: "code" }
+
+# 技能（按分类展示）
+skills:
+  - category: "编程语言"
+    items: ["Python", "SQL", "Bash","Shell"]
+  - category: "AI / 机器学习"
+    items: ["PyTorch", "Transformers", "LLM 微调", "RAG", "LangChain", "向量数据库", "Prompt 工程"]
+  - category: "工程与部署"
+    items: ["FastAPI", "Docker", "Linux", "Nginx", "Git", "CI/CD"]
+  - category: "数据与工具"
+    items: ["Pandas", "NumPy", "Redis", "MySQL", "Elasticsearch"]
+
+# 工作经历（按时间倒序）
+experience:
+  - company: "北京中普达科技股份有限公司"
+    role: "大数据工程师"
+    period: "2022 - 至今"
+    description: "负责医疗健康领域数据 ETL 全链路建设：基于 Python 完成多源异构数据的抽取、清洗、转换与分析处理；并运用大语言模型与 RAG 技术搭建智能检索问答系统，实现海量医疗数据的语义搜索与精准查询，推动数据价值向智能应用落地。"
+    tags: ["Python", "ETL", "RAG", "LLM", "MySQL", "Oracle"]
+  - company: "宝钢德盛不锈钢有限公司"
+    role: "信息科 · 数据开发工程师"
+    period: "2020 - 2022"
+    description: "负责企业级数据库的架构设计与开发，打通各类业务系统的数据采集与入库链路，完成从数据源头到数据库的规范化沉淀，为生产运营分析及智能化应用提供高质量的数据底座。"
+    tags: ["Oracle", "MySQL", "SQL", "数据建模", "数据采集"]
+
+# 项目作品（featured 的优先展示；image 可填 /static/img/xxx.png，不填则用渐变占位）
+projects:
+  - name: "RAG 知识库问答系统"
+    description: "面向企业文档的智能问答系统：支持多格式文档解析、自动切片、向量检索与大模型生成，内置引用溯源与多轮对话。"
+    tags: ["RAG", "LangChain", "向量数据库", "FastAPI"]
+    link: ""
+    repo: "https://github.com/yourname"
+    image: ""
+    featured: true
+  - name: "大模型微调与评测平台"
+    description: "一站式模型微调流水线：数据清洗、LoRA 微调、自动评测与一键部署，支持多基座模型对比实验。"
+    tags: ["PyTorch", "LoRA", "Transformers", "MLOps"]
+    link: ""
+    repo: "https://github.com/yourname"
+    image: ""
+    featured: true
+  - name: "智能文档助手"
+    description: "基于多模态大模型的文档理解工具：上传 PDF/图片即可自动摘要、抽取关键信息并生成结构化数据。"
+    tags: ["多模态", "OCR", "LLM"]
+    link: ""
+    repo: ""
+    image: ""
+    featured: false
+  - name: "个人主页 AI 助手"
+    description: "本站自带的 AI 聊天助手：SSE 流式对话、基于个人知识库的问答，支持随时接入任意 OpenAI 兼容大模型。"
+    tags: ["FastAPI", "SSE", "LLM"]
+    link: "https://yjgnet.cn"
+    repo: ""
+    image: ""
+    featured: false
