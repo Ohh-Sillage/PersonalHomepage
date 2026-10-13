@@ -8,14 +8,18 @@ AI 方向的个人主页：深色单页风格（布局参考 brittanychiang.com�
 
 ```
 PersonalHomepage/
-├── app/                  # FastAPI 应用
-│   ├── main.py           # 入口：应用创建、日志初始化、中间件挂载
-│   ├── config.py         # 配置（从 .env 读取）
+├── app/                  # FastAPI 应用（站点主体）
+│   ├── main.py           # 入口：应用创建、日志初始化、中间件挂载、AI 助手装配
+│   ├── config.py         # 站点配置（从 .env 读取；AI 配置在 assistant/config.py）
 │   ├── logger.py         # 日志系统（按天轮转 + 自动保留 14 天）
 │   ├── middleware.py     # 访问日志中间件、安全事件归类、真实 IP 解析
 │   ├── site_content.py   # 加载 content/site.yml（带自动重载）
-│   ├── routers/          # pages / blog / chat 路由
-│   └── services/         # 博客解析、AI 助手回复
+│   ├── routers/          # pages / blog 路由
+│   └── services/         # 博客解析（blog_service）
+├── assistant/            # AI 助手独立包（health / harness / memory / llm / chat 子系统）
+│   ├── ARCHITECTURE.md   # 模块架构、数据流与移植手册
+│   └── DESIGN_DECISIONS.md # AI 域决策记录与优化演进过程
+├── skills/               # 技能平台：<技能名>/SKILL.md + scripts/ + handler.py（免重启生效）
 ├── templates/            # Jinja2 模板（base / index / blog / 404 + partials）
 ├── static/               # CSS / JS / 简历 PDF / 图片
 ├── content/
@@ -53,7 +57,8 @@ uvicorn app.main:app --reload --port 8000
 | 姓名、职位、简介、邮箱、社交链接 | `content/site.yml` |
 | 技能、工作经历、项目作品 | `content/site.yml` |
 | 发新博客文章 | 在 `content/posts/` 新建 `.md`（含标题/日期/标签/摘要的 front matter） |
-| 更换简历 | 用你的 PDF 覆盖 `static/files/resume.pdf` |
+| 更换简历 | 用你的 PDF 覆盖 `static/files/resume.pdf`（下载按钮与邮件技能共用） |
+| 新增/调整 AI 技能 | `skills/<技能名>/`（SKILL.md + scripts/ + handler.py），`sync.py skills` 同步 |
 | 更换项目截图 | 图片放入 `static/img/`，在 `site.yml` 对应项目的 `image` 字段填 `/static/img/xxx.png` |
 
 文章 front matter 示例：
@@ -70,12 +75,24 @@ summary: "列表页展示的摘要。"
 
 ## AI 助手
 
+实现为顶层独立包 [`assistant/`](assistant/ARCHITECTURE.md)（与 `app/` 平级，5 个子系统可插拔），
+前端保持原位、仅通过 `/api/chat` 接口通信。
+
 - 默认（未配置 Key）：基于 `site.yml` 的预设知识库回答，带打字机流式效果；
 - 配置 `.env` 中 `LLM_API_KEY` 后：自动切换为 OpenAI 兼容接口的真实模型
   （当前线上为 DeepSeek `deepseek-flash`），前端零改动；
+- 健康检测与故障转移：每通道独立断路器（连续失败自动断路 + 后台探针自动恢复），
+  主通道故障自动切备用通道（配置 `LLM_FALLBACK_*` 启用），全部不可用时降级
+  预设知识库（快速失败，不产生费用）；`/api/health` 可查看各通道实时状态；
+- 技能平台（harness 模式）：`skills/` 下的 SKILL.md 定义可被自动执行的技能，
+  如 send-resume——访客留下邮箱即可把简历 PDF 发到其邮箱（纯 Python smtplib），
+  触发 / 参数校验 / 执行 / 审计全自动；
 - 内置三层用量防护（防 token 恶意消耗）：每 IP 每分钟限流、每 IP 每日限额、
   全站每日 token 预算（超限自动降级预设知识库）；单次回复上限 `LLM_MAX_TOKENS`，
   用量统计见 `logs/llm_usage.json`——均可在 `.env` 调整。
+
+模块架构、子系统边界与移植手册见 [assistant/ARCHITECTURE.md](assistant/ARCHITECTURE.md)，
+决策记录与优化演进过程见 [assistant/DESIGN_DECISIONS.md](assistant/DESIGN_DECISIONS.md)。
 
 ## 服务器监控
 
@@ -95,6 +112,8 @@ summary: "列表页展示的摘要。"
 python sync.py content    rem 只同步文章/文案，无需重启，秒级生效
 python sync.py static     rem 同步图片/简历等静态资源
 python sync.py app        rem 同步后端代码，自动重启服务
+python sync.py assistant  rem 同步 assistant/ AI 助手模块，自动重启服务
+python sync.py skills     rem 同步 skills/ 技能目录（免重启，即时生效）
 python sync.py env        rem 同步 .env 配置到服务器（含密钥，显式执行才会上传）
 python sync.py all        rem 全量同步
 python sync.py logs       rem 拉取服务器日志到本地 logs/server/（排查问题用）
@@ -104,7 +123,8 @@ python sync.py logs       rem 拉取服务器日志到本地 logs/server/（排�
 
 - `logs/app.log`：启动/关闭、每个请求（状态码 / 耗时 / 真实 IP / UA）、AI 提问与用量、异常堆栈；
 - `logs/security.log`：可疑扫描探测、4xx/5xx、限流与每日限额拦截等安全事件；
-- `logs/llm_usage.json` / `logs/monitor_state.json`：AI 每日用量、告警冷却状态（自动维护）；
+- `logs/llm_usage.json` / `logs/resume_usage.json` / `logs/monitor_state.json`：
+  AI 每日用量、简历邮件发送计数、告警冷却状态（自动维护）；
 - 按天自动轮转，**自动保留最近 14 天**（无需人工清理）。
 
 ## 文档
@@ -114,6 +134,8 @@ python sync.py logs       rem 拉取服务器日志到本地 logs/server/（排�
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 系统架构：请求链路、模块职责、日志与安全体系 |
 | [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md) | 设计决策：关键选择的原因与备选方案 |
 | [USAGE_GUIDE.md](USAGE_GUIDE.md) | 使用指南：内容维护、发布流程、日志排查手册 |
+| [assistant/ARCHITECTURE.md](assistant/ARCHITECTURE.md) | AI 助手模块架构：子系统边界、数据流、移植手册 |
+| [assistant/DESIGN_DECISIONS.md](assistant/DESIGN_DECISIONS.md) | AI 域设计决策与优化演进过程 |
 | [deploy/DEPLOY.md](deploy/DEPLOY.md) | 从零部署手册（nginx / systemd / HTTPS） |
 
 ## 接口
@@ -124,4 +146,4 @@ python sync.py logs       rem 拉取服务器日志到本地 logs/server/（排�
 | `GET /blog` | 文章列表 |
 | `GET /blog/{slug}` | 文章详情 |
 | `POST /api/chat` | AI 助手（SSE 流式，三层用量防护） |
-| `GET /api/health` | 健康检查 |
+| `GET /api/health` | 健康检查（含 LLM 通道 / 断路器状态） |

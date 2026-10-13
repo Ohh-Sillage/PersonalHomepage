@@ -44,7 +44,9 @@ uvicorn app.main:app --reload --port 8000
 | 技能、工作经历、项目作品 | `content/site.yml` | 否 |
 | 导航菜单 | `content/site.yml`（nav 段） | 否 |
 | 发新博客文章 | `content/posts/` 新建 `.md` | 否 |
-| 更换简历 PDF | 覆盖 `static/files/resume.pdf` | 否（需同步 static） |
+| 更换简历 PDF | 覆盖 `static/files/resume.pdf` | 否（需同步 static；下载按钮与邮件技能自动用新简历） |
+| 调整 AI 技能（如发送简历） | `skills/<技能名>/`（SKILL.md + scripts/ + handler.py） | 否（需 `python sync.py skills`） |
+| 调整 AI 助手模块代码 | `assistant/`（子系统见 [assistant/ARCHITECTURE.md](assistant/ARCHITECTURE.md)） | 是（`python sync.py assistant`） |
 | 更换项目截图 | 图片放 `static/img/`，site.yml 填 `/static/img/xxx.png` | 否（需同步 static） |
 | 页面结构、样式、交互 | `templates/`、`static/css`、`static/js` | 本地改；线上需同步 |
 
@@ -85,7 +87,9 @@ summary: "列表页展示的摘要。"
 python sync.py content     rem 只同步文章/文案，秒级，无需重启
 python sync.py static      rem 同步图片/简历等静态资源，无需重启
 python sync.py app         rem 同步后端代码，自动重启服务
+python sync.py assistant   rem 同步 assistant/ AI 助手模块，自动重启服务
 python sync.py templates   rem 同步页面模板，自动重启服务
+python sync.py skills      rem 同步技能目录（免重启，SKILL.md 与脚本即时生效）
 python sync.py deploy      rem 同步 nginx/systemd 等部署配置
 python sync.py env         rem 同步 .env 配置到服务器（含密钥，显式执行才会上传）
 python sync.py all         rem 全量同步（日常发布最常用）
@@ -111,7 +115,7 @@ curl --noproxy "*" --resolve yjgnet.cn:443:146.56.223.180 -sI https://yjgnet.cn
 | 本地开发 | `logs/app.log`、`logs/security.log` | 本地运行时产生 |
 | 服务器 | `/opt/homepage/logs/`（属主 homepage） | 线上运行日志 |
 | 本地查看线上 | `logs/server/`（`sync.py logs` 拉取的副本） | 推荐排查方式 |
-| 用量 / 监控状态 | `logs/llm_usage.json`、`logs/monitor_state.json` | 自动生成（AI 每日用量、告警冷却），删除即重置 |
+| 用量 / 监控状态 | `logs/llm_usage.json`、`logs/resume_usage.json`、`logs/monitor_state.json` | 自动生成（AI 每日用量、简历邮件计数、告警冷却），删除即重置 |
 | nginx | 服务器 `/var/log/nginx/yjgnet.access.log` / `.error.log` | 系统 logrotate 管理 |
 
 ### 4.2 拉取线上日志
@@ -132,13 +136,21 @@ python sync.py logs
                               方法  路径   状态  耗时   真实访客 IP      浏览器标识
 ```
 
-**安全日志（security.log）**——四类事件：
+**安全日志（security.log）**——五类事件：
 
 ```text
 WARNING [security] 可疑路径探测: ip=1.2.3.4 GET /wp-login.php ua="..."
 WARNING [security] 404 响应: ip=1.2.3.4 GET /no-such-page
 WARNING [security] 限流拦截: ip=1.2.3.4 超过 10 次/分钟
+WARNING [security] 简历邮件限额拦截: ip=1.2.3.4 当日已达 3 封
 ERROR   [security] 服务端异常: ip=1.2.3.4 GET /blog/xxx     # 附带堆栈在 app.log
+```
+
+**技能日志（app.log）**——简历邮件技能的执行明细：
+
+```text
+INFO [chat] AI 技能触发: ip=1.2.3.4 skill=send-resume status=sent
+INFO [skill] 技能执行: send-resume ip=1.2.3.4 to=visitor@example.com 结果=已发送
 ```
 
 ### 4.4 排查场景速查
@@ -153,6 +165,10 @@ ERROR   [security] 服务端异常: ip=1.2.3.4 GET /blog/xxx     # 附带堆栈�
 | AI 提示"提问次数已用完" | `security.log` 搜 `每日限额拦截` | 每 IP 每日限额（默认 30 次），次日零点自动清零 |
 | AI 回答变成固定模板 | `app.log` 搜 `预算耗尽` | 全站 token 预算用尽后自动降级预设知识库（护钱包机制） |
 | 想看 AI 花了多少 token | `logs/llm_usage.json`、`app.log` 搜 `AI 用量` | 每次提问的估算输入/输出与当日累计 |
+| 访客说没收到简历邮件 | `app.log` 搜 `技能执行` | 确认状态=sent 与收件邮箱；引导检查垃圾邮件 |
+| 简历邮件发送失败 | `app.log` 搜 `技能执行失败` | SMTP 未配置 / 简历文件缺失 / 发送异常原因 |
+| 简历邮件被限额拦截 | `security.log` 搜 `简历邮件限额拦截` | 每 IP 每日默认 3 封，可改 `RESUME_DAILY_LIMIT_PER_IP` |
+| LLM 通道是否健康 | `/api/health` 的 `llm` 字段、`app.log` 搜 `断路器` | CLOSED 正常；OPEN 为快速失败中，探针成功自动恢复 |
 | 响应变慢 | `app.log` 访问行的耗时字段 | 过滤 `ms` 前数值大的行 |
 
 ### 4.5 日志保留与自动清理
@@ -172,6 +188,8 @@ ERROR   [security] 服务端异常: ip=1.2.3.4 GET /blog/xxx     # 附带堆栈�
 | nginx 版本号隐藏（`server_tokens off`） | 已启用 |
 | AI 接口按真实 IP 限流（默认 10 次/分钟） | 已启用，可在 `.env` 调整 |
 | AI 每日限额（每 IP 30 次/日）与全站 token 预算（超限降级，不再产生费用） | 已启用，可在 `.env` 调整 |
+| LLM 多通道故障转移（断路器 + 后台探针，故障快速失败并自动恢复） | 已启用（主通道；配 `LLM_FALLBACK_*` 启用备用通道） |
+| 简历邮件技能（访客留邮箱自动发简历；每 IP 每日默认 3 封；全链路审计） | 已启用，可在 `.env` 调整 |
 | 服务器自动巡检（每 5 分钟）+ 异常邮件告警 + 周一运行报告 | 已启用（cron + `deploy/server_monitor.py`） |
 | 扫描探测 / 错误响应记录到 security.log | 已启用 |
 | 应用仅监听 127.0.0.1，无法绕过 nginx | 已启用 |
@@ -246,6 +264,29 @@ sudo -u homepage python3 /opt/homepage/deploy/server_monitor.py report  # 立即
 若提示"邮件未启用或配置不完整"，检查 `.env` 的 `ALERT_EMAIL_ENABLED` /
 `ALERT_SMTP_USER` / `ALERT_SMTP_PASSWORD`（邮箱 SMTP 授权码，不是登录密码）。
 
+**Q10：AI 回复“邮件服务暂时不可用”（访客没收到简历）？**
+→ `app.log` 搜 `技能执行失败` 看具体原因（SMTP 未配置 / 简历文件缺失 / 发送异常）。
+本地可独立验证发送链路：
+`python skills/send-resume/scripts/send_resume.py 你的邮箱`。
+
+**Q11：怎么确认 LLM 故障转移/健康检测在工作？**
+→ 访问 `https://yjgnet.cn/api/health`，`llm.providers` 显示各通道 `circuit`
+（CLOSED / OPEN / HALF_OPEN）、失败次数与恢复倒计时；`app.log` 搜 `断路器` /
+`健康探针` 看状态变化时间线（正常应为 CLOSED 且无频繁变化）。
+
+**Q12：怎么新增一个 AI 技能？**
+→ 参照 `skills/send-resume/` 三件套：新建 `skills/<技能名>/SKILL.md`（frontmatter 含
+name / description / trigger / entry）、`scripts/<entry>.py`（纯 Python 函数）与
+`handler.py`（可选：`detect()` 触发匹配 + `execute()` 执行，话术与约束写在技能目录内）；
+`python sync.py skills` 即生效（免重启，基座零改动）。没有 handler.py 的技能仅登记
+在索引中、不参与自动触发。完整约定见 [assistant/ARCHITECTURE.md](assistant/ARCHITECTURE.md) 的 8.1。
+
+**Q13：AI 助手相关代码在哪里改？**
+→ 全部在顶层独立包 `assistant/`（子系统：health / harness / memory / llm / chat），
+前端聊天文件（chat_widget.html / chat.js / style.css）仍在站点原位；
+改完 `python sync.py assistant`（代码，自动重启）或 `python sync.py skills`（技能内容，免重启）。
+模块架构见 [assistant/ARCHITECTURE.md](assistant/ARCHITECTURE.md)。
+
 ## 7. 环境变量速查（.env）
 
 | 变量 | 默认 | 说明 |
@@ -258,6 +299,14 @@ sudo -u homepage python3 /opt/homepage/deploy/server_monitor.py report  # 立即
 | `CHAT_RATE_LIMIT` | `10` | 每 IP 每分钟最大聊天请求数 |
 | `CHAT_DAILY_LIMIT_PER_IP` | `30` | 每 IP 每日最大提问次数（超限返回 429） |
 | `CHAT_DAILY_TOKEN_BUDGET` | `200000` | 全站每日 token 预算（估算），超限降级预设知识库 |
+| `LLM_FALLBACK_API_KEY` / `LLM_FALLBACK_BASE_URL` / `LLM_FALLBACK_MODEL` | 空 | 备用 LLM 通道（可选）：配置 Key 后主通道故障自动切换 |
+| `LLM_CB_FAILURE_THRESHOLD` | `3` | 连续失败几次后断路器打开（快速失败） |
+| `LLM_CB_RECOVERY_TIMEOUT` | `90` | 断路后进入半开（等待探针）的冷却秒数 |
+| `LLM_CB_SUCCESS_THRESHOLD` | `1` | 半开状态下探针连续成功几次才恢复 |
+| `LLM_PROBE_INTERVAL` | `60` | 健康探针间隔（秒），仅探测 OPEN 通道 |
+| `RESUME_EMAIL_ENABLED` | `true` | 简历邮件技能总开关 |
+| `RESUME_FILE` | `static/files/resume.pdf` | 邮件附件简历文件（相对项目根目录） |
+| `RESUME_DAILY_LIMIT_PER_IP` | `3` | 每 IP 每日简历邮件发送上限 |
 | `ALERT_EMAIL_ENABLED` | `true` | 告警邮件总开关（false / 留空 = 关闭） |
 | `ALERT_SMTP_HOST` / `ALERT_SMTP_PORT` | `smtp.qq.com` / `465` | 发信 SMTP（SSL） |
 | `ALERT_SMTP_USER` | — | 发信邮箱账号 |

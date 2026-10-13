@@ -215,6 +215,68 @@
 
 ---
 
+## 17. LLM 健康检测：断路器 + 主动探针（多通道故障转移）
+
+- **结论**：每个通道独立断路器（连续失败 `LLM_CB_FAILURE_THRESHOLD`（默认 3）次 →
+  OPEN 快速失败；冷却 `LLM_CB_RECOVERY_TIMEOUT`（默认 90s）后进入 HALF_OPEN，后台
+  探针（`LLM_PROBE_INTERVAL` 默认 60s，`max_tokens=1`）成功即恢复 CLOSED）；主通道
+  故障自动切备用通道（配置 `LLM_FALLBACK_*` 启用）；全部不可用降级预设知识库。
+  移植自 week5 llm_failover 教学模块并适配本站。
+- **背景**：真实模型是外部依赖，API 故障/超时会让访客聊天卡死（默认超时 60s 无响应），
+  且对故障接口的重复请求会持续产生费用。
+- **备选方案**：不做处理让请求自然超时失败；每次请求带自动重试；引入专业库
+  （pybreaker / tenacity）。
+- **理由**：
+  - 三态机把“连续故障”与“瞬时抖动”区分开：成功请求重置计数，连续失败才断路；
+  - OPEN 期间不发真实请求（毫秒级快速失败），既保体验又不花冤枉钱；
+  - 探针只探测 OPEN 通道：CLOSED 通道靠真实流量被动感知，零额外 token 消耗；
+  - 手写实现 <210 行、零新依赖，状态变化全部落日志（延续“可观测”风格）；
+  - 备用通道可选：不配置时行为与单通道完全一致（向后兼容）。
+- **变更**：2026-10-13 重构为 `assistant/health/` 子系统——`FailoverManager` 改为
+  实例化（配置作构造参数，不再读宿主全局 settings），行为与接口不变；
+  详见 [assistant/DESIGN_DECISIONS.md](assistant/DESIGN_DECISIONS.md) 的 A3 / A7。
+
+## 18. 技能平台：SKILL.md + 确定性触发 + LLM 转述（非 Function Calling）
+
+- **结论**：技能定义在 `skills/<技能名>/SKILL.md`（frontmatter + 正文），
+  `agent_harness.py` 用正则初筛触发（零 token），参数约束后白名单加载 `scripts/`
+  脚本执行，结果注入提示词由 LLM 如实转述（无 LLM 时转预设话术）；对齐 week13
+  harness 模式的 Skills 能力模型与渐进式披露。
+- **背景**：需要让 AI 助手具备“执行动作”的能力（如发简历邮件），
+  但站点是单人维护、公开无鉴权、每 token 都有成本。
+- **备选方案**：OpenAI Function Calling（模型自行决定调用）；每轮把全部技能定义
+  塞进提示词；只做预设问答不做执行。
+- **理由**：
+  - Function Calling 需模型二次决策：每轮多消耗 token、行为不可预期
+    （可能不调用 / 参数幻觉），失败重试放大成本；正则初筛确定性执行、不命中零开销；
+  - 渐进式披露控制上下文：常驻层只注入技能索引（<200 token），触发后才注入结果；
+  - 技能目录与执行解耦：mtime 缓存 + 白名单动态加载，`sync.py skills` 免重启生效；
+  - 全链路可审计：触发、执行、拦截都有日志（L1 白名单 / L2 参数约束 / L3 审计）。
+- **变更**：2026-10-13 重构为 `assistant/harness/` 基座（零业务知识）+ 技能侧
+  `handler.py` 处理器约定（触发/约束/话术内聚到技能目录），行为不变；
+  详见 [assistant/DESIGN_DECISIONS.md](assistant/DESIGN_DECISIONS.md) 的 A4 / A7。
+
+## 19. 简历邮件技能：纯 Python smtplib + 复用告警 SMTP（不用邮箱 MCP）
+
+- **结论**：`skills/send-resume/scripts/send_resume.py` 用标准库
+  `smtplib.SMTP_SSL + EmailMessage` 发送 PDF 附件；SMTP 账号复用服务器监控
+  告警的 `ALERT_SMTP_*`（QQ 邮箱授权码）；附件固定 `RESUME_FILE`；每 IP 每日
+  默认 3 封（尝试即计数，落盘 `logs/resume_usage.json`）。
+- **背景**：访客索要简历时需要人工发邮件，希望“提供邮箱即自动发送”。
+- **备选方案**：邮箱 MCP 工具；第三方邮件服务（SendGrid / Resend）；只提供下载链接。
+- **理由**：
+  - 纯标准库零依赖、发送模块 ~95 行全可控；邮箱 MCP 对“低频发附件邮件”
+    是额外的基础设施成本，且 MCP 工具不驻留于生产服务进程内；
+  - 复用告警 SMTP：`ALERT_*` 已在监控告警中验证可用，零新增配置与密钥管理；
+  - “尝试即计数”防止 SMTP 故障被反复重试轰炸；限额拦截写 security.log；
+  - 固定附件路径 + 邮箱正则校验，杜绝任意文件发送与头注入（L2 约束）；
+  - 独立可测：`python skills/send-resume/scripts/send_resume.py 邮箱` 即可验证链路。
+- **变更**：2026-10-13 技能触发/执行/话术迁入 `skills/send-resume/handler.py`
+  （基座零业务知识），发送链路、配置与限额行为不变；
+  详见 [assistant/DESIGN_DECISIONS.md](assistant/DESIGN_DECISIONS.md) 的 A5 / A7。
+
+---
+
 ## 附：决策变更流程
 
 单人项目的轻量流程——当某条决策需要修改时：

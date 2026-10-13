@@ -1,4 +1,8 @@
-"""全局配置：从 .env 读取，提供站点与 LLM 相关设置。"""
+"""全局配置：从 .env 读取站点通用设置。
+
+说明：AI 助手相关配置（LLM/CHAT/RESUME/ALERT_SMTP）已迁入独立模块
+assistant/config.py 的 AIConfig（读取同一份 .env，变量名不变）。
+"""
 
 from pathlib import Path
 
@@ -19,18 +23,6 @@ class Settings(BaseSettings):
 
     # 站点
     site_url: str = "https://yjgnet.cn"
-
-    # LLM 配置：留空则使用内置预设知识库回复；
-    # 填入 Key 后自动切换为 OpenAI 兼容接口的真实模型调用
-    llm_api_key: str = ""
-    llm_base_url: str = "https://api.deepseek.com/v1"
-    llm_model: str = "deepseek-flash"
-
-    # LLM 调用限制（防止 token 被恶意消耗）
-    llm_max_tokens: int = 500              # 单次回复生成上限（token）
-    chat_rate_limit: int = 10              # 每 IP 每分钟最大请求次数
-    chat_daily_limit_per_ip: int = 30      # 每 IP 每日最大请求次数
-    chat_daily_token_budget: int = 200000  # 全站每日 token 预算（估算），超出后降级预设知识库
 
 
 settings = Settings()

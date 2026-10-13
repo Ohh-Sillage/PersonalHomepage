@@ -5,7 +5,9 @@
     python sync.py content     # 只同步文章/文案（秒级，无需重启服务）
     python sync.py static      # 只同步图片/简历等静态资源（无需重启）
     python sync.py app         # 只同步后端代码（自动重启服务）
+    python sync.py assistant   # 只同步 AI 助手模块（自动重启服务）
     python sync.py templates   # 只同步页面模板（自动重启服务）
+    python sync.py skills      # 只同步技能目录（免重启，SKILL.md 与脚本即时生效）
     python sync.py env         # 只同步 .env 配置到服务器（自动重启服务）
     python sync.py all         # 全量同步全部文件（自动重启服务）
     python sync.py logs        # 拉取服务器日志到本地 logs/server/（排查问题用）
@@ -31,11 +33,13 @@ TARGETS = {
     "content": (["content"], False),          # site.yml 与文章有自动重载，无需重启
     "static": (["static"], False),
     "app": (["app"], True),
+    "assistant": (["assistant"], True),      # AI 助手独立模块（含模块文档）
     "templates": (["templates"], True),
     "deploy": (["deploy"], True),
+    "skills": (["skills"], False),     # 技能有 mtime 缓存与动态加载，免重启即时生效
     "env": ([".env"], True),            # .env 含密钥与授权码，仅在显式调用时上传
     "all": (
-        ["app", "content", "templates", "static", "deploy",
+        ["app", "assistant", "content", "templates", "static", "deploy", "skills",
          "requirements.txt", "README.md", ".env.example",
          "ARCHITECTURE.md", "DESIGN_DECISIONS.md", "USAGE_GUIDE.md"],
         True,
@@ -92,6 +96,11 @@ def run_sudo(client, cmd: str, password: str, timeout: int = 120):
 
 
 def upload_tree(sftp, local: Path, remote: str) -> int:
+    # 远端根目录不存在时先创建（首次同步新目录，如 skills/）
+    try:
+        sftp.stat(remote)
+    except IOError:
+        sftp.mkdir(remote)
     count = 0
     for item in sorted(local.iterdir()):
         if item.name in EXCLUDE:
@@ -201,6 +210,13 @@ def main():
             client,
             f"chown -R homepage:homepage {remote_root}"
             f" && rm -rf {remote_root}/app/__pycache__ {remote_root}/app/*/__pycache__"
+            f" {remote_root}/assistant/__pycache__ {remote_root}/assistant/*/__pycache__"
+            # 一次性迁移清理：删除已迁入 assistant/ 模块的旧版文件（可随下次重构移除）
+            f" && rm -f {remote_root}/app/services/llm_failover.py"
+            f" {remote_root}/app/services/skill_registry.py"
+            f" {remote_root}/app/services/agent_harness.py"
+            f" {remote_root}/app/services/llm_service.py"
+            f" {remote_root}/app/routers/chat.py"
             f" && (test ! -f {remote_root}/.env || chmod 640 {remote_root}/.env)",
             cfg.get("password", ""),
         )
@@ -210,10 +226,10 @@ def main():
         if need_restart and cfg.get("password"):
             print("重启服务 ...")
             run_sudo(client, "systemctl restart homepage", cfg["password"])
-            # 服务刚重启时端口可能尚未就绪，重试几次再判定
+            # 服务刚重启时端口可能尚未就绪，重试几次再判定（最长约 20s）
             health = ""
-            for _ in range(6):
-                time.sleep(1)
+            for _ in range(10):
+                time.sleep(2)
                 _, out, _ = client.exec_command("curl -s -m 3 http://127.0.0.1:8000/api/health")
                 health = out.read().decode().strip()
                 if health:

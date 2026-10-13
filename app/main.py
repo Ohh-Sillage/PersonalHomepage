@@ -10,22 +10,31 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import BASE_DIR, settings
 from app.logger import get_logger, setup_logging
 from app.middleware import access_log_middleware
-from app.routers import blog, chat, pages
+from app.routers import blog, pages
 from app.templating import base_context, templates
+
+# AI 助手为独立模块（assistant/）：一行装配挂载路由/探针/健康快照
+from assistant import AIAssistant
 
 setup_logging()
 log = get_logger("app")
 
+ai = AIAssistant()
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """启动/关闭日志：为排查重启、掉线问题留时间锚点。"""
+    """启动/关闭日志：为排查重启、掉线问题留时间锚点；启动 LLM 健康探针后台任务。"""
+    providers = ai.providers_info()
     log.info(
-        "应用启动: %s（LLM: %s）",
+        "应用启动: %s（LLM: %s，通道: %s）",
         settings.site_url,
-        "已配置" if settings.llm_api_key else "未配置，使用预设知识库",
+        "已配置" if ai.configured else "未配置，使用预设知识库",
+        providers or None,
     )
+    await ai.start()
     yield
+    await ai.stop()
     log.info("应用关闭")
 
 
@@ -36,13 +45,13 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 app.include_router(pages.router)
 app.include_router(blog.router)
-app.include_router(chat.router)
+app.include_router(ai.router)
 
 
 @app.get("/api/health")
 async def health():
-    """健康检查（部署验证与监控用）。"""
-    return {"status": "ok"}
+    """健康检查（部署验证与监控用）：含 LLM 通道与断路器状态。"""
+    return {"status": "ok", "llm": ai.health_snapshot()}
 
 
 @app.exception_handler(StarletteHTTPException)

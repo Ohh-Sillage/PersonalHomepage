@@ -62,31 +62,31 @@ experience:
 
 # 项目作品（featured 的优先展示；image 可填 /static/img/xxx.png，不填则用渐变占位）
 projects:
-  - name: "RAG 知识库问答系统"
-    description: "面向企业文档的智能问答系统：支持多格式文档解析、自动切片、向量检索与大模型生成，内置引用溯源与多轮对话。"
-    tags: ["RAG", "LangChain", "向量数据库", "FastAPI"]
+  - name: "上市公司年报 RAG 问答系统"
+    description: "以上市公司真实年报 PDF 为数据，覆盖解析、分块、混合检索、重排到生成的完整 RAG 流水线；原生与 LangChain 双版本对照，内置拒答与逐条引用溯源，配套 RAGAS 评测与消融实验。"
+    tags: ["RAG", "FAISS", "BM25", "LangChain"]
     link: ""
-    repo: "https://github.com/yourname"
+    repo: "https://github.com/Ohh-Sillage/Financial-Report-Rag"
     image: ""
     featured: true
-  - name: "大模型微调与评测平台"
-    description: "一站式模型微调流水线：数据清洗、LoRA 微调、自动评测与一键部署，支持多基座模型对比实验。"
-    tags: ["PyTorch", "LoRA", "Transformers", "MLOps"]
+  - name: "在线视频实时字幕翻译（OnlineTranslation）"
+    description: "Edge 浏览器观看在线视频时的实时字幕翻译：捕获标签页音频，经本地 faster-whisper 识别日语 / 英语并翻译为中文，以双语悬浮字幕显示，音频全程不出本机。"
+    tags: ["faster-whisper", "FastAPI", "WebSocket", "浏览器扩展"]
     link: ""
-    repo: "https://github.com/yourname"
+    repo: "https://github.com/Ohh-Sillage/OnlineTranslation"
     image: ""
     featured: true
-  - name: "智能文档助手"
-    description: "基于多模态大模型的文档理解工具：上传 PDF/图片即可自动摘要、抽取关键信息并生成结构化数据。"
-    tags: ["多模态", "OCR", "LLM"]
+  - name: "KUAKE-QIC 中文医疗意图分类"
+    description: "中文医疗搜索意图分类（11 类）对比实验：同一数据与评估协议下，BERT 判别式微调（81.7%）胜过 LLM zero-shot / few-shot 与 LoRA 指令微调三路方案，含池化与类别不均衡消融。"
+    tags: ["BERT", "LoRA", "PyTorch", "Transformers"]
     link: ""
-    repo: ""
+    repo: "https://github.com/Ohh-Sillage/kuaque-qic-bert-vs-llm"
     image: ""
     featured: false
   - name: "个人主页 AI 助手"
     description: "本站自带的 AI 聊天助手：SSE 流式对话、基于个人知识库的问答，支持随时接入任意 OpenAI 兼容大模型。"
     tags: ["FastAPI", "SSE", "LLM"]
     link: "https://yjgnet.cn"
-    repo: ""
+    repo: "https://github.com/Ohh-Sillage/PersonalHomepage"
     image: ""
     featured: false
